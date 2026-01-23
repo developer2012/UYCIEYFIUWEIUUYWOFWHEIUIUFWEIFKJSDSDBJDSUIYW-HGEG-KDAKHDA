@@ -101,13 +101,13 @@ async def start_handler(message: types.Message):
     user_num = count_users() # Nechanchi foydalanuvchi ekanini bilish
     
     if await check_sub_channels(message.from_user.id):
-        await message.answer(f"Xush kelibsiz! Siz bizning {user_num}-foydalanuvchimizsiz! ✍️")
+        await message.answer(f"Xush kelibsiz!  ✍️")
     else:
         markup = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Kanalga qo'shilish 📢", url=CHANNEL_URL)],
             [InlineKeyboardButton(text="Obuna bo'ldim ✅", callback_data="sub_done")]
         ])
-        await message.answer(f"Siz bizning {user_num}-foydalanuvchimizsiz! Botdan foydalanish uchun kanalga a'zo bo'ling:", reply_markup=markup)
+        await message.answer(f" Botdan foydalanish uchun kanalga a'zo bo'ling:", reply_markup=markup)
 
 @dp.message(F.text)
 async def translate_handler(message: types.Message):
