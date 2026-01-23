@@ -56,7 +56,7 @@ def keep_alive():
     t.start()
 
 # --- BOT SOZLAMALARI ---
-API_TOKEN = '7709778975:AAFHt5MrrafItyIojVAnlgJuZM7shFxdEUA'
+API_TOKEN = '8326285649:AAGmU4yBIgxFvcWLBcDzE0MTh88inEM7Y1g'
 CHANNEL_ID = "@speakingzoneway" 
 CHANNEL_URL = "https://t.me/speakingzoneway" 
 
