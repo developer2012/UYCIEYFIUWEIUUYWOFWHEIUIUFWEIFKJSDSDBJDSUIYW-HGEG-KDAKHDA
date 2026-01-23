@@ -7,24 +7,52 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 from deep_translator import GoogleTranslator
 from gtts import gTTS
+from flask import Flask
+from threading import Thread
 
-# --- SOZLAMALAR ---
+# --- SERVERNI UYG'OQ SAQLASH QISMI (FLASK) ---
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot yoniq va ishlamoqda!"
+
+def run():
+    # Render beradigan portni avtomatik oladi yoki 8080 ishlatadi
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# --- BOT SOZLAMALARI ---
 API_TOKEN = '8526236810:AAEzr3_sW4x2gMIFtIDLRQ9y7yTvWu56tUc'
-# Kanalning ommaviy ID si (shunday yozish xatolikni kamaytiradi)
 CHANNEL_ID = "@speakingzoneway" 
-# Barcha uchun ishlaydigan havola
 CHANNEL_URL = "https://t.me/speakingzoneway" 
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
-# Lug'at ma'lumotlarini olish funksiyasi
+# --- O'Z-O'ZINI UYG'OTISH (SELF-PING) ---
+async def self_ping():
+    """Botni har 10 daqiqada uyg'otib turadi"""
+    while True:
+        await asyncio.sleep(600)  # 10 daqiqa kutish
+        try:
+            async with aiohttp.ClientSession() as session:
+                # PASTDAGI MANZILNI O'ZINGIZNIKI BILAN ALMASHTIRING
+                my_url = "https://uycieyfiuuwywofwheiuifweifkjsdsdbjdsuiyw-hgeg-kdakhda-1.onrender.com"
+                async with session.get(my_url) as resp:
+                    logging.info(f"O'z-o'zini uyg'otdi, status: {resp.status}")
+        except Exception as e:
+            logging.error(f"Ping xatosi: {e}")
+
+# --- ASOSIY FUNKSIYALAR ---
 async def get_english_definition(text):
-    # Gap bo'lsa, eng asosiy (uzun) so'zni qidiramiz
     words = text.split()
     word_to_search = max(words, key=len) if len(words) > 1 else text
-    
     async with aiohttp.ClientSession() as session:
         url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word_to_search}"
         async with session.get(url) as response:
@@ -35,18 +63,15 @@ async def get_english_definition(text):
                     pos = meanings['partOfSpeech']
                     definition = meanings['definitions'][0]['definition']
                     return f"🔹 *{pos.capitalize()}*: {definition}"
-                except:
-                    return None
+                except: return None
             return None
 
-# Obuna tekshirish
 async def check_sub_channels(user_id):
     try:
         member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
-        # Obuna holatlarini tekshirish
         return member.status in ['member', 'administrator', 'creator']
     except Exception as e:
-        logging.error(f"Obuna tekshirishda xato: {e}")
+        logging.error(f"Obuna xatosi: {e}")
         return False
 
 @dp.message(Command("start"))
@@ -62,7 +87,6 @@ async def start_handler(message: types.Message):
 
 @dp.message(F.text)
 async def translate_handler(message: types.Message):
-    # Avval obunani tekshiramiz
     if not await check_sub_channels(message.from_user.id):
         markup = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Kanalga qo'shilish 📢", url=CHANNEL_URL)],
@@ -72,44 +96,37 @@ async def translate_handler(message: types.Message):
 
     msg_text = message.text.strip()
     status_msg = await message.answer("Ma'lumotlar tayyorlanmoqda... 📖")
-
     try:
-        # 1. Tarjima
         uz_tr = GoogleTranslator(source='en', target='uz').translate(msg_text)
-        
-        # 2. Inglizcha izoh
         en_def = await get_english_definition(msg_text)
-        
-        # 3. Ovoz (TTS)
         tts = gTTS(text=msg_text, lang='en')
         path = f"v_{message.from_user.id}.mp3"
         tts.save(path)
-
-        # Matnni tayyorlash
         caption = (f"🇬🇧 **Text:** {msg_text}\n"
                    f"🇺🇿 **Tarjimasi:** {uz_tr}\n\n"
                    f"📖 **English Explanation:**\n"
                    f"{en_def if en_def else '_Batafsil tushuntirish topilmadi._'}")
-
         await message.answer_voice(voice=FSInputFile(path), caption=caption, parse_mode="Markdown")
         await status_msg.delete()
         os.remove(path)
-
     except Exception as e:
         logging.error(f"Xatolik: {e}")
-        await status_msg.edit_text("Kechirasiz, xatolik yuz berdi. Qayta urinib ko'ring.")
+        await status_msg.edit_text("Kechirasiz, xatolik yuz berdi.")
 
 @dp.callback_query(F.data == "sub_done")
 async def sub_callback(call: types.CallbackQuery):
     if await check_sub_channels(call.from_user.id):
         await call.message.delete()
-        await bot.send_message(call.from_user.id, "Rahmat! Obuna tasdiqlandi. Endi foydalanishingiz mumkin. 😊")
+        await bot.send_message(call.from_user.id, "Rahmat! Endi foydalanishingiz mumkin. 😊")
     else:
         await call.answer("Siz hali a'zo bo'lmadingiz! ❌", show_alert=True)
 
 async def main():
+    # O'z-o'zini uyg'otish vazifasini ishga tushirish
+    asyncio.create_task(self_ping())
     print("Bot ishga tushdi...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    keep_alive()  
     asyncio.run(main())
