@@ -12,7 +12,7 @@ from flask import Flask
 from threading import Thread
 
 # --- ADMIN VA BAZA SOZLAMALARI ---
-ADMIN_ID = 858726164  # O'ZINGIZNING TELEGRAM ID RAQAMINGIZNI YOZING (@userinfobot orqali biling)
+ADMIN_ID = 858726164  # Sizning ID raqamingiz
 db_name = "users.db"
 
 # Ma'lumotlar bazasini sozlash
@@ -85,6 +85,16 @@ async def check_sub_channels(user_id):
         logging.error(f"Obuna xatosi: {e}")
         return False
 
+# FAQAT ADMIN UCHUN ADMIN PANEL
+@dp.message(Command("admin"))
+async def admin_panel(message: types.Message):
+    if message.from_user.id == ADMIN_ID:
+        total = count_users()
+        await message.answer(f"📊 **Admin Panel**\n\n👤 Jami foydalanuvchilar: {total} ta\n✅ Bot holati: Faol")
+    else:
+        # Boshqalar yozsa bot javob bermaydi yoki rad etadi
+        await message.answer("Kechirasiz, bu buyruq faqat bot egasi uchun! ❌")
+
 @dp.message(Command("start"))
 async def start_handler(message: types.Message):
     add_user(message.from_user.id) # Bazaga qo'shish
@@ -98,15 +108,6 @@ async def start_handler(message: types.Message):
             [InlineKeyboardButton(text="Obuna bo'ldim ✅", callback_data="sub_done")]
         ])
         await message.answer(f"Siz bizning {user_num}-foydalanuvchimizsiz! Botdan foydalanish uchun kanalga a'zo bo'ling:", reply_markup=markup)
-
-# FAQAT ADMIN UCHUN STATISTIKA
-@dp.message(Command("stat"))
-async def admin_stat(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
-        total = count_users()
-        await message.answer(f"📊 **Bot statistikasi:**\n\n👤 Jami foydalanuvchilar: {total} ta")
-    else:
-        await message.answer("Kechirasiz, bu buyruq faqat bot egasi uchun! ❌")
 
 @dp.message(F.text)
 async def translate_handler(message: types.Message):
