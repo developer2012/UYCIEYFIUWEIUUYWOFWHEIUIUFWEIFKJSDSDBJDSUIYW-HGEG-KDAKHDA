@@ -1,5 +1,4 @@
-aiogram
-gTTS
-deep-translator
-aiohttp
+aiogram==3.*
+pydub
+requests
 flask

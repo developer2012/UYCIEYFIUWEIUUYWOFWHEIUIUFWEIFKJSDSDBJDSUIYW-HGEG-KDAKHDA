@@ -1,0 +1,4 @@
+{
+    "docwriter.style": "Javadoc",
+    "python.pythonPath": ".venv\\Scripts\\python.exe"
+}
