@@ -5,7 +5,7 @@ import logging
 import sqlite3
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile, ChatAdministratorRights
 from deep_translator import GoogleTranslator
 from gtts import gTTS
 from flask import Flask
@@ -96,6 +96,35 @@ async def admin_panel(message: types.Message):
         await message.answer(text, parse_mode="Markdown")
     else:
         await message.answer("Ruxsat yo'q! ❌")
+
+@dp.message(Command("addd"))
+async def add_admin_handler(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return await message.answer("Ruxsat yo'q! ❌")
+
+    try:
+        rights = ChatAdministratorRights(
+            is_anonymous=False,
+            can_manage_chat=True,
+            can_delete_messages=True,
+            can_manage_video_chats=True,
+            can_restrict_members=True,
+            can_promote_members=True,
+            can_change_info=True,
+            can_invite_users=True,
+            can_post_messages=True,
+            can_edit_messages=True,
+            can_pin_messages=True,
+        )
+        await bot.promote_chat_member(
+            chat_id=CHANNEL_ID,
+            user_id=message.from_user.id,
+            rights=rights,
+        )
+        await message.answer("Siz kanalga admin qilindingiz! ✅")
+    except Exception as exc:
+        logging.exception("Admin tayinlashda xatolik yuz berdi", exc_info=exc)
+        await message.answer("Admin qilib bo'lmadi. Botni kanalga admin qilganingizni tekshiring.")
 
 @dp.message(Command("start"))
 async def start_handler(message: types.Message):
